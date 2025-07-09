@@ -1,0 +1,15 @@
+.venv
+.idea
+database_flat.npz
+database_original.npz
+database_reduced.npz
+MIGRATION_GUIDE.md
+PFNN_Architecture.md
+requirements.txt
+train_pfnn_*.py
+__pycache__
+*.pyc
+demo/
+data/
+patches.npz
+pfnn.zip
