@@ -17,6 +17,11 @@ from DropoutLayer import DropoutLayer
 from ActivationLayer import ActivationLayer
 from AdamTrainer import AdamTrainer
 
+# HyperParameters
+JOINT_IMPORTANCE = 0.1
+DROPOUT = 0.1
+LEARNING_RATE = 0.001
+
 rng = np.random.RandomState(23456)
 # Add device for PyTorch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -61,8 +66,8 @@ joint_weights = np.array([
     1e-10, 1, 1, 1, 1e-10, 1e-10, 1e-10,
     1e-10, 1, 1, 1, 1e-10, 1e-10, 1e-10]).repeat(3)
 
-Xstd[w*10+j*3*0:w*10+j*3*1] = Xstd[w*10+j*3*0:w*10+j*3*1].mean() / (joint_weights * 0.1) # Pos
-Xstd[w*10+j*3*1:w*10+j*3*2] = Xstd[w*10+j*3*1:w*10+j*3*2].mean() / (joint_weights * 0.1) # Vel
+Xstd[w*10+j*3*0:w*10+j*3*1] = Xstd[w*10+j*3*0:w*10+j*3*1].mean() / (joint_weights * JOINT_IMPORTANCE) # Pos
+Xstd[w*10+j*3*1:w*10+j*3*2] = Xstd[w*10+j*3*1:w*10+j*3*2].mean() / (joint_weights * JOINT_IMPORTANCE) # Vel
 Xstd[w*10+j*3*2:          ] = Xstd[w*10+j*3*2:          ].mean() # Terrain
 
 Ystd[0:2] = Ystd[0:2].mean() # Translational Velocity
@@ -104,9 +109,9 @@ class PhaseFunctionedNetwork(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
 
         # Initialize weights and biases for all slices
-        self.W0 = nn.Parameter(torch.randn(self.nslices, 512, input_shape-1) * 0.01)
-        self.W1 = nn.Parameter(torch.randn(self.nslices, 512, 512) * 0.01)
-        self.W2 = nn.Parameter(torch.randn(self.nslices, output_shape, 512) * 0.01)
+        self.W0 = nn.Parameter(torch.randn(self.nslices, 512, input_shape-1) * 0.1)
+        self.W1 = nn.Parameter(torch.randn(self.nslices, 512, 512) * 0.1)
+        self.W2 = nn.Parameter(torch.randn(self.nslices, output_shape, 512) * 0.1)
 
         self.b0 = nn.Parameter(torch.zeros(self.nslices, 512))
         self.b1 = nn.Parameter(torch.zeros(self.nslices, 512))
@@ -200,17 +205,18 @@ def save_network(network):
 
 """ Training Loop """
 
-network = PhaseFunctionedNetwork(input_shape=X.shape[1]+1, output_shape=Y.shape[1], dropout=0.7).to(device)
-optimizer = optim.Adam(network.parameters(), lr=0.0001)
+network = PhaseFunctionedNetwork(input_shape=X.shape[1]+1, output_shape=Y.shape[1], dropout=DROPOUT).to(device)
+#network.load('./demo/network/pfnn/network.pt')
+#save_network(network)
+#sys.exit()
+optimizer = optim.Adam(network.parameters(), lr=LEARNING_RATE)
 criterion = nn.MSELoss()
 
 batchsize = 128
 
-for me in range(20):
+for me in range(5):
     I = torch.randperm(len(X))
-
     print('\n[MacroEpoch] %03i' % me)
-
     for bi in range(10):
         start, stop = ((bi+0)*len(I))//10, ((bi+1)*len(I))//10
         idx = I[start:stop]
@@ -230,5 +236,5 @@ for me in range(20):
             optimizer.step()
 
         # Save network
-network.save('./demo/network/pfnn/network.pt')
+    network.save('./demo/network/pfnn/network%03d.pt' % me)
 save_network(network)
