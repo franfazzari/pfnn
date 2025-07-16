@@ -21,6 +21,7 @@ from AdamTrainer import AdamTrainer
 JOINT_IMPORTANCE = 0.1
 DROPOUT = 0.1
 LEARNING_RATE = 0.001
+EPOCHS = 10
 
 rng = np.random.RandomState(23456)
 # Add device for PyTorch
@@ -214,7 +215,7 @@ criterion = nn.MSELoss()
 
 batchsize = 128
 
-for me in range(5):
+for me in range(EPOCHS):
     I = torch.randperm(len(X))
     print('\n[MacroEpoch] %03i' % me)
     for bi in range(10):
